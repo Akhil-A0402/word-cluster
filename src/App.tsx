@@ -93,6 +93,31 @@ export const App: React.FC = () => {
     [dueWords, allWords]
   );
 
+  // Called whenever external data or backup is synced
+  const handleDataSynced = useCallback(async () => {
+    const words = await db.words.toArray();
+    const userProfile = await db.profile.get('user_profile');
+
+    setAllWords(words);
+    if (userProfile) {
+      setProfile(userProfile);
+    }
+
+    // Refresh active revision queue so newly synced words appear immediately in Revise!
+    const due = words.filter(isWordDueForReview);
+    const pool = due.length > 0 ? due : words;
+    const sorted = sortWordsForReview(pool);
+    const sessionSubset = sorted.slice(0, 10);
+
+    setSessionQueue(sessionSubset);
+    setCurrentIndex(0);
+    setComboCount(0);
+    setSessionHistory([]);
+    setSessionXPEarned(0);
+    setSessionCorrectCount(0);
+    setIsSessionFinished(false);
+  }, []);
+
   // Initialize session when words are first loaded
   useEffect(() => {
     if (allWords.length > 0 && sessionQueue.length === 0 && !isSessionFinished) {
@@ -303,7 +328,7 @@ export const App: React.FC = () => {
         {/* TAB 3: ADD WORDS (BULK OR SINGLE) */}
         {activeTab === 'add' && (
           <AddWordsView
-            onWordsAdded={loadData}
+            onWordsAdded={handleDataSynced}
             onNavigateToLibrary={() => setActiveTab('words')}
           />
         )}
@@ -315,7 +340,8 @@ export const App: React.FC = () => {
               isOpen={true}
               onClose={() => setActiveTab('review')}
               profile={profile}
-              onDataSynced={loadData}
+              onDataSynced={handleDataSynced}
+              onNavigateTab={(tab) => setActiveTab(tab)}
             />
           </div>
         )}
@@ -326,7 +352,11 @@ export const App: React.FC = () => {
         isOpen={isSyncModalOpen}
         onClose={() => setIsSyncModalOpen(false)}
         profile={profile}
-        onDataSynced={loadData}
+        onDataSynced={handleDataSynced}
+        onNavigateTab={(tab) => {
+          setIsSyncModalOpen(false);
+          setActiveTab(tab);
+        }}
       />
 
       {/* Footer */}

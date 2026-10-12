@@ -13,9 +13,11 @@ import {
   Database,
   Globe,
   Save,
-  HelpCircle
+  HelpCircle,
+  Brain,
+  BookOpen
 } from 'lucide-react';
-import type { WordItem, UserProfile } from '../types';
+import type { WordItem, UserProfile, ActiveTab } from '../types';
 import { db, INITIAL_SEED_WORDS } from '../db/wordsDb';
 import { audio } from '../utils/audio';
 import { fetchAndSyncFromExternalUrl, normalizeSyncUrl } from '../utils/syncSource';
@@ -35,6 +37,7 @@ interface SyncModalProps {
   onClose: () => void;
   profile: UserProfile | null;
   onDataSynced: () => void;
+  onNavigateTab?: (tab: ActiveTab) => void;
 }
 
 export const SyncModal: React.FC<SyncModalProps> = ({
@@ -42,6 +45,7 @@ export const SyncModal: React.FC<SyncModalProps> = ({
   onClose,
   profile,
   onDataSynced,
+  onNavigateTab,
 }) => {
   const [syncSourceUrl, setSyncSourceUrl] = useState(profile?.syncSourceUrl || '');
   const [autoSyncOnLoad, setAutoSyncOnLoad] = useState(profile?.autoSyncOnLoad ?? false);
@@ -327,19 +331,40 @@ export const SyncModal: React.FC<SyncModalProps> = ({
 
         {/* Status Message */}
         {importStatus && (
-          <div
-            className={`p-3.5 rounded-2xl text-xs flex items-center gap-2 ${
-              isError
-                ? 'bg-rose-500/10 border border-rose-500/30 text-rose-300'
-                : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
-            }`}
-          >
-            {isError ? (
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            ) : (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <div className="space-y-2.5">
+            <div
+              className={`p-3.5 rounded-2xl text-xs flex items-center gap-2 ${
+                isError
+                  ? 'bg-rose-500/10 border border-rose-500/30 text-rose-300'
+                  : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+              }`}
+            >
+              {isError ? (
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              )}
+              <span className="flex-1 leading-relaxed">{importStatus}</span>
+            </div>
+
+            {!isError && onNavigateTab && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onNavigateTab('review')}
+                  className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-lg shadow-indigo-600/20"
+                >
+                  <Brain className="w-3.5 h-3.5" />
+                  Practice in Revise Now
+                </button>
+                <button
+                  onClick={() => onNavigateTab('words')}
+                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition cursor-pointer border border-slate-700"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  View in Library
+                </button>
+              </div>
             )}
-            <span className="flex-1">{importStatus}</span>
           </div>
         )}
 
@@ -373,9 +398,16 @@ export const SyncModal: React.FC<SyncModalProps> = ({
           )}
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">
-              External Source URL (JSON or text):
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-medium text-slate-300">
+                External Source URL (JSON or text):
+              </label>
+              {syncSourceUrl.trim() && normalizeSyncUrl(syncSourceUrl) !== syncSourceUrl.trim() && (
+                <span className="text-[10px] text-emerald-400 font-medium">
+                  ✓ Auto-converts to raw URL
+                </span>
+              )}
+            </div>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Globe className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -396,6 +428,11 @@ export const SyncModal: React.FC<SyncModalProps> = ({
                 Save
               </button>
             </div>
+            {syncSourceUrl.trim() && normalizeSyncUrl(syncSourceUrl) !== syncSourceUrl.trim() && (
+              <p className="text-[11px] text-slate-400 mt-1.5 truncate">
+                Resolved raw target: <span className="text-indigo-300 font-mono">{normalizeSyncUrl(syncSourceUrl)}</span>
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-xs text-slate-400">
