@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Brain,
-  CheckCircle
+  CheckCircle,
+  Zap,
+  ClipboardCheck
 } from 'lucide-react';
-import type { WordItem, UserProfile, ActiveTab, ReviewHistoryEntry, SessionResult } from './types';
+import type { WordItem, UserProfile, ActiveTab, ReviewHistoryEntry, SessionResult, RevisionMode } from './types';
 import { db, initializeDatabase } from './db/wordsDb';
 import { isWordDueForReview, sortWordsForReview, calculateNextReview } from './utils/srs';
 import { audio } from './utils/audio';
 import { Header } from './components/Header';
 import { WordReviewCard } from './components/WordReviewCard';
+import { WordTestCard } from './components/WordTestCard';
 import { WordManager } from './components/WordManager';
 import { AddWordsView } from './components/AddWordsView';
 import { SessionSummary } from './components/SessionSummary';
@@ -20,6 +23,11 @@ export const App: React.FC = () => {
   const [allWords, setAllWords] = useState<WordItem[]>([]);
   const [activeTab, setActiveTab] = useState<ActiveTab>('review');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Revision Mode: 'flashcard' (single-guess speed) vs 'test' (recall all synonyms & submit)
+  const [revisionMode, setRevisionMode] = useState<RevisionMode>(() => {
+    return (localStorage.getItem('wc_revision_mode') as RevisionMode) || 'flashcard';
+  });
 
   // Active Session State
   const [sessionQueue, setSessionQueue] = useState<WordItem[]>([]);
@@ -268,6 +276,45 @@ export const App: React.FC = () => {
               />
             ) : currentCard ? (
               <div className="space-y-4">
+                {/* Revision Mode Switcher (Flashcard vs Test Mode) */}
+                <div className="w-full max-w-xl mx-auto flex items-center justify-between pb-1">
+                  <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-2xl border border-slate-800 shadow-sm text-xs">
+                    <button
+                      onClick={() => {
+                        setRevisionMode('flashcard');
+                        localStorage.setItem('wc_revision_mode', 'flashcard');
+                      }}
+                      className={`px-3 py-1.5 rounded-xl font-medium flex items-center gap-1.5 transition cursor-pointer ${
+                        revisionMode === 'flashcard'
+                          ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      Flashcard Mode
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setRevisionMode('test');
+                        localStorage.setItem('wc_revision_mode', 'test');
+                      }}
+                      className={`px-3 py-1.5 rounded-xl font-medium flex items-center gap-1.5 transition cursor-pointer ${
+                        revisionMode === 'test'
+                          ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm font-semibold'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <ClipboardCheck className="w-3.5 h-3.5" />
+                      Test Mode (Recall All)
+                    </button>
+                  </div>
+
+                  <div className="text-[11px] text-slate-400 hidden sm:block">
+                    {revisionMode === 'flashcard' ? '1 synonym per card' : 'Enter all synonyms & submit'}
+                  </div>
+                </div>
+
                 {/* Progress bar across current session queue */}
                 <div className="w-full max-w-xl mx-auto flex items-center justify-between text-xs text-slate-400 px-1">
                   <span>
@@ -286,12 +333,20 @@ export const App: React.FC = () => {
                   />
                 </div>
 
-                <WordReviewCard
-                  word={currentCard}
-                  onAnswer={handleAnswer}
-                  comboCount={comboCount}
-                  streak={profile?.streak ?? 1}
-                />
+                {revisionMode === 'flashcard' ? (
+                  <WordReviewCard
+                    word={currentCard}
+                    onAnswer={handleAnswer}
+                    comboCount={comboCount}
+                    streak={profile?.streak ?? 1}
+                  />
+                ) : (
+                  <WordTestCard
+                    word={currentCard}
+                    onAnswer={handleAnswer}
+                    streak={profile?.streak ?? 1}
+                  />
+                )}
               </div>
             ) : (
               <div className="text-center py-16 bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-xl mx-auto space-y-4">

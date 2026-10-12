@@ -51,3 +51,12 @@ export interface ValidationResult {
 }
 
 export type ActiveTab = 'review' | 'words' | 'add' | 'stats' | 'sync';
+
+export type RevisionMode = 'flashcard' | 'test';
+
+export interface TestResultBreakdown {
+  correct: string[];
+  missed: string[];
+  incorrect: string[];
+  scorePercent: number;
+}
