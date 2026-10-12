@@ -77,17 +77,19 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
         <div className="space-y-1">
           <p className="text-xs font-bold text-white flex items-center gap-1.5">
             <RefreshCw className="w-3.5 h-3.5 text-indigo-400" />
-            Keep Your Progress Safe
+            {profile?.syncSourceUrl ? 'Sync with GitHub / Cloud Source' : 'Keep Your Progress Safe'}
           </p>
           <p className="text-[11px] text-indigo-200/80">
-            You just completed a revision session! Backup or sync your updated progress across devices now.
+            {profile?.syncSourceUrl
+              ? 'Fetch latest updates from your configured external URL or export your updated progress.'
+              : 'You just completed a revision session! Backup or sync your updated progress across devices now.'}
           </p>
         </div>
         <button
           onClick={onOpenSync}
           className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-3.5 py-2 rounded-xl transition shadow-sm shrink-0 cursor-pointer"
         >
-          Sync Progress
+          {profile?.syncSourceUrl ? 'Sync from Cloud' : 'Sync Progress'}
         </button>
       </div>
 

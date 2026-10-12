@@ -20,6 +20,8 @@ export interface UserProfile {
   sessionsCompleted: number;
   soundEnabled: boolean;
   hapticsEnabled: boolean;
+  syncSourceUrl?: string; // External sync source URL (e.g. GitHub raw URL, Gist, or JSON endpoint)
+  autoSyncOnLoad?: boolean; // Automatically check source URL on startup if online
 }
 
 export interface ReviewHistoryEntry {

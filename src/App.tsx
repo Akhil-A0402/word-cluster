@@ -13,6 +13,7 @@ import { WordManager } from './components/WordManager';
 import { AddWordsView } from './components/AddWordsView';
 import { SessionSummary } from './components/SessionSummary';
 import { SyncModal } from './components/SyncModal';
+import { fetchAndSyncFromExternalUrl } from './utils/syncSource';
 
 export const App: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -42,6 +43,17 @@ export const App: React.FC = () => {
         setProfile(userProfile);
         audio.soundEnabled = userProfile.soundEnabled;
         audio.hapticsEnabled = userProfile.hapticsEnabled;
+
+        // Auto-sync from configured external source URL if online
+        if (userProfile.syncSourceUrl && userProfile.autoSyncOnLoad && navigator.onLine) {
+          try {
+            await fetchAndSyncFromExternalUrl(userProfile.syncSourceUrl);
+            const freshWords = await db.words.toArray();
+            setAllWords(freshWords);
+          } catch (syncErr) {
+            console.warn('Background auto-sync skipped (offline or unreachable):', syncErr);
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to initialize database:', err);
